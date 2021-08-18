@@ -128,6 +128,11 @@ class MainActivity : AppCompatActivity(), OnRequestPermissionsResultCallback, Ge
         super.onResume()
     }
 
+    override fun onPause() {
+        super.onPause()
+        closeCamera()
+    }
+
     var context: Context? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -244,8 +249,8 @@ class MainActivity : AppCompatActivity(), OnRequestPermissionsResultCallback, Ge
         if (isOnTop) {
             isOnTop = false
             sv1.setZOrderMediaOverlay(true)
-            sv2.setZOrderMediaOverlay(false)
-//            sv1.setZOrderOnTop(true)
+//            sv2.setZOrderMediaOverlay(false)
+            sv1.setZOrderOnTop(true)
 //            sv2.setZOrderOnTop(false)
 //            sv1.visibility = View.VISIBLE
 //            sv2.visibility = View.INVISIBLE
@@ -253,8 +258,8 @@ class MainActivity : AppCompatActivity(), OnRequestPermissionsResultCallback, Ge
         else {
             isOnTop = true
             sv2.setZOrderMediaOverlay(true)
-            sv1.setZOrderMediaOverlay(false)
-//            sv2.setZOrderOnTop(true)
+//            sv1.setZOrderMediaOverlay(false)
+            sv2.setZOrderOnTop(true)
 //            sv1.setZOrderOnTop(false)
 //            sv1.visibility = View.INVISIBLE
 //            sv2.visibility = View.VISIBLE
@@ -376,38 +381,25 @@ class MainActivity : AppCompatActivity(), OnRequestPermissionsResultCallback, Ge
         cameraManager.openCamera(dualCamera.logicalId, executor, object: CameraDevice.StateCallback(){
             override fun onOpened(device: CameraDevice) {
                 callback(device)
+                mCameraOpenCloseLock.release()
+                mCameraDevice = device
             }
 
             override fun onDisconnected(device: CameraDevice) {
                 onDisconnected(device)
+                mCameraOpenCloseLock.release()
                 device.close()
+                mCameraDevice = null
             }
 
             override fun onError(device: CameraDevice, error: Int) {
+                mCameraOpenCloseLock.release()
                 device.close()
+                mCameraDevice = null
+                val activity: Activity = this@MainActivity
+                activity?.finish()
             }
         })
-    }
-
-    private val mStateCallback: CameraDevice.StateCallback = object : CameraDevice.StateCallback() {
-        override fun onOpened(cameraDevice: CameraDevice) {
-            mCameraOpenCloseLock.release()
-            mCameraDevice = cameraDevice
-        }
-
-        override fun onDisconnected(cameraDevice: CameraDevice) {
-            mCameraOpenCloseLock.release()
-            cameraDevice.close()
-            mCameraDevice = null
-        }
-
-        override fun onError(cameraDevice: CameraDevice, error: Int) {
-            mCameraOpenCloseLock.release()
-            cameraDevice.close()
-            mCameraDevice = null
-            val activity: Activity = this@MainActivity
-            activity?.finish()
-        }
     }
 
     private fun requestCameraPermission() {
